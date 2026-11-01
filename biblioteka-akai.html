@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Biblioteka Akai</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root{--bg:#F1F4F6;--sf:#fff;--tx:#14212B;--mu:#667685;--ln:#D5DCE2;--ac:#0B8A7E;--ac2:#fff;color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0F1A22;--sf:#16252F;--tx:#E5EDF2;--mu:#8CA0AE;--ln:#25384A;--ac:#3DD6C4;--ac2:#06231F;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0F1A22;--sf:#16252F;--tx:#E5EDF2;--mu:#8CA0AE;--ln:#25384A;--ac:#3DD6C4;--ac2:#06231F;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0 auto;max-width:760px;padding:10px 12px 40px;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,'Segoe UI',Roboto,sans-serif}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:10}
+:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
+h1{font-size:21px;margin:0}
+button,select,input{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid var(--ln);background:var(--sf);color:var(--tx)}
+button{cursor:pointer}button.on{background:var(--ac);color:var(--ac2);border-color:var(--ac)}
+nav{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto}nav button{flex:none}
+#q{width:100%;margin-bottom:6px}
+.r{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--ln)}
+.r>div{flex:1;min-width:0}.r b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500}
+.p{width:42px;height:42px;border-radius:50%;padding:0}.m{color:var(--mu);font-size:13px}
+.f{border:0;background:none;font-size:22px;color:var(--mu)}.f.h{color:#e63946}
+.g{display:grid;grid-template-columns:1fr 1fr;gap:8px}.g label{display:block;font-size:13px;color:var(--mu)}.g select,.g input{width:100%}
+section{display:none}section.on{display:block}
+#sg{background:color-mix(in srgb,var(--ac) 14%,transparent);border-radius:10px;padding:6px 10px;margin:8px 0}
+details{border:1px solid var(--ln);border-radius:10px;padding:8px 10px;margin:8px 0;background:var(--sf)}summary{font-weight:600}
+.dots{display:flex;gap:8px;margin:8px 0}.dots i{width:22px;height:22px;border-radius:50%;border:2px solid var(--ac)}.dots i.on{background:var(--ac)}
+.gr i{display:inline-block;width:16px;height:28px;background:var(--ac);margin:1px}.gr i:nth-child(4n){margin-right:10px}
+.empty{padding:40px 8px;text-align:center;color:var(--mu)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 14px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90vw;z-index:20}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header><h1>Biblioteka Akai</h1><button id="pick" class="on">Wybierz folder</button></header>
+<nav><button data-t="a" class="on">Biblioteka</button><button data-t="p">Paczki</button><button data-t="t">Narzędzia</button><button data-t="s">Ustawienia</button></nav>
+<input id="dirin" type="file" webkitdirectory multiple hidden>
+
+<section id="a" class="on">
+  <input id="q" type="search" placeholder="Szukaj: np. trap dark 140 Am kick" aria-label="Szukaj">
+  <label><input type="checkbox" id="fo"> tylko ♥</label>
+  <div id="re" hidden></div><div id="sg" hidden></div><div id="list"></div><div id="empty"></div>
+</section>
+
+<section id="p">
+  <div class="g" id="pf"></div>
+  <p><label><input type="checkbox" id="pk"> pasujące tonacje</label> <label><input type="checkbox" id="pb"> po równo z każdego instrumentu</label> <label><input type="checkbox" id="pfav"> tylko ♥</label></p>
+  <button id="go" class="on">Generuj paczkę</button><p id="pr"></p>
+</section>
+
+<section id="t">
+  <p class="m">Wybrany sampel: <b id="ts">brak (kliknij ▶ w bibliotece)</b></p>
+  <details open><summary>Metronom z polirytmem</summary>
+    <p><label>BPM <input id="mb" type="number" value="100" style="width:5em"></label>
+    <label>Warstwa A <input id="ma" type="number" value="3" style="width:4em"></label>
+    <label>Warstwa B <input id="mc" type="number" value="4" style="width:4em"></label>
+    <label>Cykl (uderzeń) <input id="mn" type="number" value="4" style="width:4em"></label>
+    <button id="mg" class="on">Start</button></p><div id="mv"></div>
+    <span class="m">A:B to tyle równych uderzeń każdej warstwy w jednym cyklu (np. 3:4 w cyklu 4 uderzeń).</span></details>
+  <details><summary>Rhythm Analyzer</summary><p><button id="ra">Analizuj rytm sampla</button></p><div id="rr"></div></details>
+  <details><summary>Harmony Analyzer</summary><p><button id="ha">Analizuj harmonię sampla</button></p><div id="hr"></div></details>
+</section>
+
+<section id="s">
+  <p><label><input type="checkbox" id="cs"> Podpowiadaj sampel pasujący do poprzedniego</label></p>
+  <p><button id="sc">Skanuj ponownie</button></p>
+  <p class="m" id="info"></p>
+  <p class="m">Na komputerze wybierz folder biblioteki (w oknie wyboru wpisz ścieżkę, np. C:\ProgramData\Akai). Aby biblioteka synchronizowała się z iCloud, wybierz folder iCloudDrive\Akai: znaczniki i ulubione zapisują się w pliku akai-index.json obok sampli. Serwer WebDAV wymaga programu na komputerze i w przeglądarce nie jest dostępny.</p>
+</section>
+<div id="toast" role="status"></div>
+
+<script>
+const $=s=>document.querySelector(s),L=a=>[].concat(a).filter(Boolean),EXT=/\.(wav|aiff?|mp3|flac|ogg|m4a)$/i;
+let M=new Map(),F=new Map(),vis=[],sg=[],cur,root,cfg={suggest:true},idb,url,actx,busy=false,built=-1;const au=new Audio();
+const NOTES=['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'],FLAT={Db:'C#',Eb:'D#',Gb:'F#',Ab:'G#',Bb:'A#'};
+const MAJ=[6.35,2.23,3.48,2.33,4.38,4.09,2.52,5.19,2.39,3.66,2.29,2.88],MIN=[6.33,2.68,3.52,5.38,2.60,3.53,2.54,4.75,3.98,2.69,3.34,3.17];
+let tt;const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),3500)};
+const info=t=>$('#info').textContent=t;
+
+/* ---------- słowniki tagów (kategorie z Twoich zrzutów) ---------- */
+const DRUMS=['Kick','Snare','Clap','Hi-Hat','Tom','Cymbal','Perc'];
+const INST=[['Kick',/kick|bassdrum|\bbd\b/i],['Snare',/snare|snr|\brim/i],['Clap',/clap/i],['Hi-Hat',/hi.?hat|\bhat|\bhh\b/i],['Tom',/\btom/i],['Cymbal',/cymbal|crash|\bride/i],['Perc',/perc|shaker|conga|bongo/i],['Bass',/bass|808|\bsub\b/i],['Bells',/bell/i],['Brass/Wind',/brass|horn|flute|\bwind|sax/i],['FX',/\bfx\b|riser|impact|sweep|noise|foley/i],['Keys',/keys|rhodes|\bep\b/i],['Lead',/\blead/i],['Organ',/organ/i],['Pad',/\bpad/i],['Piano',/piano/i],['Pitched Perc',/marimba|mallet|kalimba|pitched/i],['Pluck',/pluck/i],['Seq',/\bseq|arp/i],['Synth',/synth/i],['Vocal',/vox|vocal|choir|\bvoc\b/i]];
+const GENRES=[['80s',/\b80s\b/i],['90s',/\b90s\b/i],['Acoustic',/acoustic/i],['Bass House',/bass.?house/i],['BoomBap',/boom.?bap/i],['Chilled Trap',/chill\w* trap/i],['DanceHall',/dance.?hall/i],['Deep House',/deep.?house/i],['Drum Machine',/drum.?machine/i],['Drum&Bass',/dnb|drum.?(n|and|&).?bass|jungle/i],['DubStep',/dub.?step/i],['EDM',/\bedm\b/i],['Electro House',/electro.?house/i],['Funk',/funk/i],['Future Bass',/future.?bass/i],['FutureBeat',/future.?beat/i],['FutureHouse',/future.?house/i],['Garage',/garage/i],['HipHop',/hip.?hop/i],['House',/house/i],['Ibiza House',/ibiza/i],['LoFi',/lo.?fi/i],['Mainroom',/main.?room/i],['NU Trance',/trance/i],['R&B',/r&b|rnb/i],['Soul',/soul/i],['Soulful House',/soulful/i],['Tech House',/tech.?house/i],['Techno',/techno/i],['Trap',/trap/i],['Trap Soul',/trap.?soul/i],['UK House',/uk.?house/i],['Urban',/urban/i],['Vintage',/vintage/i]];
+const ATTRS=['Airy','Ambient','Analog','Arp','Atmos','Bend','Brass','Breathy','Bright','Chord','Classic','Clean','Complex','Dark','Detuned','Digital','Dirty','Distorted','Drone','Echo','Electric','Electronic','Evolving','FM','Fast','Fat','Glassy','Hard','Harsh','Heavy','Hollow','Large','Layered','Legato','Light','LoFi','Metallic','Moving','Noisy','Percussive','Pulsing','Punchy','Seq','Simple','Small','Smooth','Soft','Staccato','Sub','Sweep','Synth','Thin','Tremolo','Vintage','Warm','Wet','Wood'].map(a=>[a,new RegExp('\\b'+a.toLowerCase()+'\\b')]);
+const MOODS=[['mroczny',/dark|evil|horror|mroczn/i],['radosny',/happy|bright|uplift|radosn/i],['smutny',/sad|melanch|smutn/i],['agresywny',/aggressive|hard|angry|agres/i],['chill',/chill|relax|soft|dreamy/i]];
+
+/* ---------- pamięć przeglądarki (IndexedDB) ---------- */
+const open=()=>new Promise(r=>{try{const q=indexedDB.open('akai-lib',1);q.onupgradeneeded=()=>{q.result.createObjectStore('meta',{keyPath:'id'});q.result.createObjectStore('kv')};q.onsuccess=()=>r(q.result);q.onerror=()=>r(null)}catch(e){r(null)}});
+const tx=(s,m,f)=>new Promise(res=>{if(!idb)return res();try{const t=idb.transaction(s,m),q=f(t.objectStore(s));t.oncomplete=()=>res(q&&q.result);t.onerror=()=>res()}catch(e){res()}});
+const put=r=>tx('meta','readwrite',s=>s.put(r));
+let st;const saveIndex=()=>{clearTimeout(st);st=setTimeout(async()=>{if(!root)return;try{const w=await(await root.getFileHandle('akai-index.json',{create:true})).createWritable();await w.write(JSON.stringify([...M.values()]));await w.close()}catch(e){}},1500)};
+const importIdx=txt=>{try{for(const r of JSON.parse(txt)){if(!r.id)continue;const o=M.get(r.id);if(!o)M.set(r.id,r);else if(r.fav&&!o.fav)o.fav=true}}catch(e){}};
+
+/* ---------- analiza dźwięku ---------- */
+const hann=(()=>{const w=new Float32Array(8192);for(let i=0;i<8192;i++)w[i]=.5-.5*Math.cos(2*Math.PI*i/8191);return w})();
+function fft(re,im){const n=re.length;for(let i=1,j=0;i<n;i++){let b=n>>1;for(;j&b;b>>=1)j^=b;j^=b;if(i<j){[re[i],re[j]]=[re[j],re[i]];[im[i],im[j]]=[im[j],im[i]]}}
+ for(let len=2;len<=n;len<<=1){const a=-2*Math.PI/len,wr=Math.cos(a),wi=Math.sin(a),h=len>>1;for(let i=0;i<n;i+=len){let cr=1,ci=0;for(let k=0;k<h;k++){const u=i+k,v=u+h,tr=re[v]*cr-im[v]*ci,ti=re[v]*ci+im[v]*cr;re[v]=re[u]-tr;im[v]=im[u]-ti;re[u]+=tr;im[u]+=ti;const t=cr*wr-ci*wi;ci=cr*wi+ci*wr;cr=t}}}}
+function spectra(y,sr,from,len){const N=8192,re=new Float32Array(N),im=new Float32Array(N),c=new Float64Array(12),S=new Float64Array(N/2),end=Math.min(from+Math.max(len,N),y.length);
+ for(let a=from;a===from||a+N<=end;a+=N){for(let i=0;i<N;i++)re[i]=(y[a+i]||0)*hann[i];im.fill(0);fft(re,im);
+  for(let k=1;k<N/2;k++){const m=Math.hypot(re[k],im[k]);S[k]+=m;const f=k*sr/N;if(f>65&&f<2000)c[(Math.round(12*Math.log2(f/261.63))%12+12)%12]+=m}}
+ return{c,S}}
+const mono=(buf,sec)=>{const y=new Float32Array(Math.min(buf.length,buf.sampleRate*sec)),n=buf.numberOfChannels;for(let c=0;c<n;c++){const d=buf.getChannelData(c);for(let i=0;i<y.length;i++)y[i]+=d[i]/n}return y};
+function onsetEnv(y,sr){const hop=Math.floor(sr/100),n=Math.min(Math.floor(y.length/hop),6000),o=new Float32Array(n);let prev=0;
+ for(let i=0;i<n;i++){let s=0;for(let j=0;j<hop;j++){const v=y[i*hop+j];s+=v*v}const e=Math.sqrt(s/hop);o[i]=Math.max(0,e-prev);prev=e}return o}
+function estBpm(o){const n=Math.min(o.length,3000);if(n<200)return null;let best=0,bl=0;for(let l=33;l<=86;l++){let s=0;for(let i=l;i<n;i++)s+=o[i]*o[i-l];if(s>best){best=s;bl=l}}return bl?Math.round(6000/bl):null}
+const corr=(a,b)=>{const n=a.length,ma=a.reduce((x,y)=>x+y)/n,mb=b.reduce((x,y)=>x+y)/n;let s=0,x=0,y=0;for(let i=0;i<n;i++){s+=(a[i]-ma)*(b[i]-mb);x+=(a[i]-ma)**2;y+=(b[i]-mb)**2}return s/Math.sqrt(x*y||1)};
+function analyze(buf){
+ const sr=buf.sampleRate,y=mono(buf,12),dur=buf.duration,r={dur:+dur.toFixed(2),attrs:[]},{c,S}=spectra(y,sr,0,y.length);
+ let sS=0,sf=0,lo=0,gm=0,am=0,nb=0;for(let k=1;k<S.length;k++){const f=k*sr/8192;sS+=S[k];sf+=f*S[k];if(f<100)lo+=S[k];if(f>65&&f<2000){gm+=Math.log(S[k]+1e-9);am+=S[k];nb++}}
+ const cen=sf/(sS||1),flat=Math.exp(gm/nb)/((am/nb)||1);r.cen=cen;
+ r.attrs.push(cen>3500?'Bright':cen<1200?'Dark':'Warm');if(flat>.5)r.attrs.push('Noisy');if(lo>.5*sS)r.attrs.push('Sub');
+ let pk=0,pi=0;for(let i=0;i<y.length;i++){const v=Math.abs(y[i]);if(v>pk){pk=v;pi=i}}if(dur<2&&pi<sr*.03)r.attrs.push('Percussive');
+ if(flat<.3&&dur>.4&&c.some(v=>v>0)){let b=[-2,0,false];for(let k=0;k<12;k++){const rc=c.map((_,i)=>c[(i+k)%12]);for(const[p,mn]of[[MAJ,false],[MIN,true]]){const s=corr(rc,p);if(s>b[0])b=[s,k,mn]}}if(b[0]>.65)r.key=NOTES[b[1]]+(b[2]?'m':'')}
+ if(dur>=2)r.bpm=estBpm(onsetEnv(y,sr));return r}
+function tag(rel,a,f){
+ const t=rel.toLowerCase().replace(/[\/_-]/g,' '),name=rel.split('/').pop().replace(/\.[^.]+$/,''),inst=(INST.find(([,x])=>x.test(t))||[''])[0];
+ const r={id:rel,name,kind:'',inst,genre:GENRES.filter(([,x])=>x.test(t)).map(g=>g[0]),mood:(MOODS.find(([,x])=>x.test(t))||[''])[0],attrs:ATTRS.filter(([,x])=>x.test(t)).map(g=>g[0]),key:'',bpm:null,dur:a.dur||0,size:f.size,sig:f.size+':'+f.lastModified,fav:false};
+ const m=t.match(/(\d{2,3})\s?bpm/);if(m)r.bpm=+m[1];
+ (a.attrs||[]).forEach(x=>{if(!r.attrs.includes(x))r.attrs.push(x)});
+ const loop=r.dur>=2.5||/loop/.test(t);
+ r.kind=/\bstem/.test(t)?'Stem':loop?'Multi':(DRUMS.includes(inst)||(!inst&&!a.key))?'Kit':'Melodic';
+ if(r.kind!=='Kit'){const k=name.match(/(?<![A-Za-z])([A-G][#b]?)(m|min)?(?![A-Za-z#])/);r.key=k?(FLAT[k[1]]||k[1])+(k[2]?'m':''):(a.key||'')}
+ if(!r.bpm&&r.kind==='Multi')r.bpm=a.bpm||null;
+ if(!r.mood&&r.key){const br=(a.cen||0)>2500;r.mood=r.key.endsWith('m')?(br?'smutny':'mroczny'):(br?'radosny':'chill')}
+ return r}
+
+/* ---------- folder i skanowanie ---------- */
+const AC=window.AudioContext||window.webkitAudioContext,ctx=()=>actx=actx||new AC();
+async function walk(d,pre,out){for await(const[n,h]of d.entries()){if(n[0]==='.')continue;if(h.kind==='directory'){if(!(pre===''&&n==='Paczki'))await walk(h,pre+n+'/',out)}else if(EXT.test(n))out.push([pre+n,h])}}
+async function scan(entries,prune){
+ if(busy)return;busy=true;const keep=new Set();let i=0;
+ for(const[rel,h]of entries){F.set(rel,h);keep.add(rel);i++;if(i%5==1)info(`Analiza ${i}/${entries.length}: ${rel}`);
+  try{const f=h.getFile?await h.getFile():h,o=M.get(rel);if(o&&o.sig===f.size+':'+f.lastModified&&o.kind)continue;
+   let a={};try{a=analyze(await ctx().decodeAudioData(await f.arrayBuffer()))}catch(e){}
+   const r=tag(rel,a,f);r.fav=!!(o&&o.fav);M.set(rel,r);await put(r);if(i%10==0)draw()}catch(e){}}
+ if(prune)for(const id of [...M.keys()])if(!keep.has(id)){M.delete(id);tx('meta','readwrite',s=>s.delete(id))}
+ busy=false;info(`Sampli: ${M.size}.`);draw();saveIndex()}
+async function connect(h){root=h;await tx('kv','readwrite',s=>s.put(h,'root'));
+ try{importIdx(await(await(await h.getFileHandle('akai-index.json')).getFile()).text())}catch(e){}
+ const out=[];await walk(h,'',out);await scan(out,true)}
+async function pickFolder(){
+ if(window.showDirectoryPicker){try{await connect(await showDirectoryPicker({mode:'readwrite',id:'akai'}));return}catch(e){if(e.name==='AbortError')return}}
+ $('#dirin').click()}
+$('#dirin').onchange=async e=>{const fs=[...e.target.files],out=[];let dir=false;
+ for(const f of fs){const p=f.webkitRelativePath;if(p)dir=true;const rel=p?p.split('/').slice(1).join('/'):f.name;
+  if(/akai-index\.json$/.test(f.name)){importIdx(await f.text());continue}
+  if(!EXT.test(f.name)||rel.startsWith('Paczki/'))continue;out.push([rel||f.name,f])}
+ e.target.value='';root=null;await scan(out,dir)};
+$('#pick').onclick=pickFolder;$('#sc').onclick=async()=>{if(!root)return pickFolder();const out=[];await walk(root,'',out);scan(out,true)};
+const fileOf=async id=>{const h=F.get(id);return h?(h.getFile?await h.getFile():h):null};
+
+/* ---------- widok biblioteki ---------- */
+const hay=s=>[s.name,s.kind,s.inst,...L(s.genre),s.mood,...L(s.attrs),s.key,s.bpm&&s.bpm+'bpm',s.id].join(' ').toLowerCase();
+const meta=s=>[s.kind,s.inst,s.bpm&&s.bpm+' BPM',s.key,L(s.genre).join('/'),s.mood,L(s.attrs).slice(0,3).join(' '),s.dur+' s'].filter(Boolean).join(' · ');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const row=(s,i,fav)=>`<div class="r" data-i="${i}"><button class="p">▶</button><div><b>${esc(s.name)}</b><span class="m">${esc(meta(s))}</span></div>${fav?`<button class="f ${s.fav?'h':''}" aria-label="Ulubione">${s.fav?'♥':'♡'}</button>`:''}</div>`;
+function draw(){const t=$('#q').value.toLowerCase().split(/\s+/).filter(Boolean);
+ vis=[...M.values()].filter(s=>(!$('#fo').checked||s.fav)&&t.every(w=>hay(s).includes(w))).sort((a,b)=>a.id.localeCompare(b.id)).slice(0,300);
+ $('#list').innerHTML=vis.map((s,i)=>row(s,i,true)).join('');
+ $('#empty').innerHTML=M.size?(vis.length?'':'<div class="empty">Brak sampli pasujących do wyszukiwania.</div>'):'<div class="empty"><b>Biblioteka jest pusta</b><br>Kliknij „Wybierz folder” i wskaż folder z samplami (WAV, AIFF, MP3, FLAC). Pliki zostają na dysku, a program analizuje je lokalnie.</div>'}
+async function play(s){
+ let h=F.get(s.id);if(h&&h.getFile)h=await h.getFile();if(!h){toast('Połącz z folderem biblioteki (przycisk „Wybierz folder”).');return}
+ if(url)URL.revokeObjectURL(url);url=URL.createObjectURL(h);au.src=url;cur=s;$('#ts').textContent=s.name;
+ try{await au.play()}catch(e){toast('Nie można odtworzyć tego pliku.')}}
+const kp=k=>k?[NOTES.indexOf(k.replace('m','')),k.endsWith('m')]:null;
+function compat(a,b){const A=kp(a),B=kp(b);if(!A||!B)return 0;const d=(B[0]-A[0]+12)%12;return A[1]===B[1]?(d===0?2:(d===5||d===7)?1:0):(d===(A[1]?3:9)?1:0)}
+function suggest(a){const sc=s=>{if(s.id===a.id)return -1;let v=compat(a.key,s.key)*2;if(a.bpm&&s.bpm)v+=Math.abs(a.bpm-s.bpm)<=a.bpm*.06?3:-9;
+ return v+2*(L(a.genre).some(g=>L(s.genre).includes(g))?1:0)+(a.mood&&a.mood===s.mood?1:0)+(s.inst!==a.inst?1:0)+(s.fav?1:0)};
+ return [...M.values()].map(s=>[s,sc(s)]).filter(x=>x[1]>1).sort((x,y)=>y[1]-x[1]).slice(0,8).map(x=>x[0])}
+$('#list').onclick=async e=>{const r=e.target.closest('.r');if(!r)return;const s=vis[r.dataset.i];
+ if(e.target.classList.contains('f')){s.fav=!s.fav;put(s);saveIndex();draw()}
+ else{play(s);if(cfg.suggest){sg=suggest(s);$('#sg').hidden=!sg.length;$('#sg').innerHTML='Pasuje do „'+esc(s.name)+'”:'+sg.map((x,i)=>row(x,i,false)).join('')}}};
+$('#sg').onclick=e=>{const r=e.target.closest('.r');if(r)play(sg[r.dataset.i])};
+$('#q').oninput=$('#fo').onchange=draw;
+$('#cs').onchange=e=>{cfg.suggest=e.target.checked;tx('kv','readwrite',s=>s.put(cfg,'cfg'));if(!cfg.suggest)$('#sg').hidden=true};
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,section').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');if(b.dataset.t==='p')buildForm()});
+
+/* ---------- generator paczek ---------- */
+const vals=k=>[...new Set([...M.values()].flatMap(s=>L(s[k])))].sort();
+function buildForm(){if(built===M.size)return;built=M.size;
+ $('#pf').innerHTML=[['kind','Typ'],['genre','Gatunek'],['inst','Instrument'],['mood','Nastrój'],['key','Tonacja']].map(([k,l])=>`<div><label>${l}</label><select id="f_${k}"><option value="">dowolny</option>${vals(k).map(v=>`<option>${esc(v)}</option>`).join('')}</select></div>`).join('')+
+ `<div style="grid-column:1/3"><label>Atrybuty (zaznacz kilka)</label><select id="f_attrs" multiple size="5">${vals('attrs').map(v=>`<option>${esc(v)}</option>`).join('')}</select></div>`+
+ [['bpm_lo','Tempo od'],['bpm_hi','Tempo do'],['maxd','Maks. długość (s)'],['n','Liczba sampli'],['name','Nazwa paczki']].map(([k,l])=>`<div><label>${l}</label><input id="f_${k}" ${k==='name'?'':'type="number"'}${k==='n'?' value="16"':''}></div>`).join('')}
+function filt(q){return[...M.values()].filter(s=>{
+ if(['kind','inst','mood'].some(k=>q[k]&&s[k]!==q[k]))return false;if(q.genre&&!L(s.genre).includes(q.genre))return false;
+ if((q.attrs||[]).some(a=>!L(s.attrs).includes(a)))return false;
+ if(q.key&&s.key!==q.key&&!(q.kcompat&&compat(q.key,s.key)))return false;
+ if((q.bpm_lo||q.bpm_hi)&&!s.bpm)return false;if(q.bpm_lo&&s.bpm<q.bpm_lo||q.bpm_hi&&s.bpm>q.bpm_hi)return false;
+ if(q.maxd&&s.dur>q.maxd)return false;if(q.fav&&!s.fav)return false;return true})}
+let zip;
+$('#go').onclick=async()=>{buildForm();const q={kcompat:$('#pk').checked,balance:$('#pb').checked,fav:$('#pfav').checked};
+ document.querySelectorAll('#pf [id^=f_]').forEach(e=>q[e.id.slice(2)]=e.type==='number'&&e.value?+e.value:e.value);q.attrs=[...$('#f_attrs').selectedOptions].map(o=>o.value);
+ let sel=filt(q).sort(()=>Math.random()-.5);const n=+q.n||16;
+ if(q.balance){const by={};sel.forEach(s=>(by[s.inst||s.kind]=by[s.inst||s.kind]||[]).push(s));sel=[];while(Object.values(by).some(v=>v.length)&&sel.length<n)for(const v of Object.values(by))if(v.length&&sel.length<n)sel.push(v.pop())}
+ sel=sel.slice(0,n);if(!sel.length){$('#pr').textContent='Brak sampli pasujących do wybranych ustawień.';return}
+ const name=(q.name||'').replace(/[^\p{L}\p{N}\- _]/gu,'').trim()||'Paczka_'+new Date().toISOString().slice(0,16).replace(/\D/g,'');
+ $('#pr').textContent='Tworzę paczkę…';const files=[];
+ for(const[i,s]of sel.entries()){const f=await fileOf(s.id);if(f)files.push([String(i+1).padStart(2,'0')+'_'+s.id.split('/').pop(),f])}
+ if(!files.length){$('#pr').textContent='Połącz z folderem biblioteki, żeby utworzyć paczkę.';return}
+ let msg=`Gotowe: ${files.length} sampli.`;
+ if(root){try{const d=await(await root.getDirectoryHandle('Paczki',{create:true})).getDirectoryHandle(name,{create:true});
+  for(const[fn,f]of files){const w=await(await d.getFileHandle(fn,{create:true})).createWritable();await w.write(f);await w.close()}msg+=` Zapisano w folderze Paczki\\${name}.`}catch(e){msg+=' Nie udało się zapisać w folderze biblioteki.'}}
+ zip=null;if(window.JSZip){const z=new JSZip();files.forEach(([fn,f])=>z.file(fn,f));zip={name:name+'.zip',blob:await z.generateAsync({type:'blob'})}}
+ $('#pr').innerHTML=esc(msg)+(zip?' <button id="dz">Pobierz ZIP</button>':'');
+ if(zip)$('#dz').onclick=async()=>{try{const d=window.claude&&await claude.use('downloads');if(d)await d.save({filename:zip.name,data:zip.blob});else{const a=document.createElement('a');a.href=URL.createObjectURL(zip.blob);a.download=zip.name;a.click()}}catch(e){if(!e||e.code!=='declined')toast('Nie udało się zapisać ZIP-a.')}}};
+
+/* ---------- narzędzia ---------- */
+const need=el=>cur?false:($(el).textContent='Najpierw odtwórz sampel w bibliotece (▶).',true);
+async function decodeCur(sec){const f=await fileOf(cur.id);if(!f)return null;const buf=await ctx().decodeAudioData(await f.arrayBuffer());return{buf,y:mono(buf,sec),sr:buf.sampleRate}}
+$('#ra').onclick=async()=>{if(need('#rr'))return;$('#rr').textContent='Analizuję…';
+ try{const d=await decodeCur(60);if(!d)return $('#rr').textContent='Połącz z folderem biblioteki.';
+  const o=onsetEnv(d.y,d.sr),n=o.length,mean=o.reduce((a,b)=>a+b,0)/n,sd=Math.sqrt(o.reduce((a,b)=>a+(b-mean)**2,0)/n),thr=mean+1.5*sd,pk=[];
+  for(let k=0;k<n;k++)if(o[k]>thr&&o[k]>(o[k-1]||0)&&o[k]>=(o[k+1]||0))pk.push(k);
+  const bpm=estBpm(o);if(pk.length<3||!bpm)return $('#rr').textContent='Za mało uderzeń, żeby określić rytm.';
+  const t=pk.map(k=>(k-pk[0])/100);let best;
+  for(const[div,nm]of[[4,'16-tki (prosty)'],[3,'triole']]){const g=60/bpm/div;let e=0;const q=t.map(x=>{const r=Math.round(x/g);e+=Math.abs(x-r*g);return r});e/=t.length*g;if(!best||e<best.e)best={e,div,nm,q}}
+  const Ls=4*best.div,grid=new Array(Ls).fill(0);best.q.forEach(v=>grid[((v%Ls)+Ls)%Ls]++);const mx=Math.max(...grid);
+  $('#rr').innerHTML=`Tempo: <b>${bpm} BPM</b> · uderzeń: ${pk.length} · podział: ${best.nm} · dopasowanie ${Math.round((1-best.e*2)*100)}%<div class="gr">${grid.map(v=>`<i style="opacity:${.12+.88*v/mx}"></i>`).join('')}</div><span class="m">Wzór jednego taktu; zakładam, że pierwsze uderzenie wypada na „raz”.</span>`}
+ catch(e){$('#rr').textContent='Nie udało się odczytać pliku.'}};
+$('#ha').onclick=async()=>{if(need('#hr'))return;$('#hr').textContent='Analizuję…';
+ try{const d=await decodeCur(90);if(!d)return $('#hr').textContent='Połącz z folderem biblioteki.';
+  const seg=Math.floor(d.sr*120/(cur.bpm||120)),T={};for(let r=0;r<12;r++){T[NOTES[r]]=[0,4,7].map(x=>(x+r)%12);T[NOTES[r]+'m']=[0,3,7].map(x=>(x+r)%12)}
+  const out=[];for(let a=0;a<d.y.length-8192;a+=seg){const{c}=spectra(d.y,d.sr,a,seg),tot=Math.sqrt(c.reduce((s,v)=>s+v*v,0));if(tot<1e-3)continue;
+   let best,bs=-1;for(const k in T){const s=T[k].reduce((p,i)=>p+c[i],0)/tot;if(s>bs){bs=s;best=k}}if(!out.length||out[out.length-1].c!==best)out.push({t:+(a/d.sr).toFixed(1),c:best})}
+  const key=analyze(d.buf).key;
+  $('#hr').innerHTML=`Tonacja: <b>${key||'nie wykryto'}</b><p>${out.slice(0,64).map(x=>`${x.c} <span class="m">${x.t} s</span>`).join(' → ')||'Nie wykryto akordów.'}</p>`}
+ catch(e){$('#hr').textContent='Nie udało się odczytać pliku.'}};
+let mt;
+function beep(t,f){const a=ctx(),o=a.createOscillator(),g=a.createGain();o.frequency.value=f;g.gain.setValueAtTime(.4,t);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+.07)}
+$('#mg').onclick=e=>{if(mt){clearInterval(mt);mt=0;e.target.textContent='Start';return}
+ const a=ctx();a.resume();e.target.textContent='Stop';
+ const cyc=60/(+$('#mb').value||100)*(+$('#mn').value||4),Ls=[[+$('#ma').value||3,880],[+$('#mc').value||4,440]],t0=a.currentTime+.1,s0=[0,0];
+ $('#mv').innerHTML=Ls.map(([n])=>`<div class="dots">${'<i></i>'.repeat(n)}</div>`).join('');const rows=document.querySelectorAll('#mv .dots');
+ mt=setInterval(()=>Ls.forEach(([n,fq],li)=>{for(;;){const k=s0[li],j=k%n,tm=t0+Math.floor(k/n)*cyc+j*cyc/n;if(tm>a.currentTime+.15)break;
+  beep(tm,j?fq:fq*1.5);setTimeout(()=>{const d=rows[li].children[j];d.classList.add('on');setTimeout(()=>d.classList.remove('on'),120)},Math.max(0,(tm-a.currentTime)*1000));s0[li]++}}),25)};
+
+/* ---------- start ---------- */
+(async()=>{
+ idb=await open();for(const r of(await tx('meta','readonly',s=>s.getAll()))||[])M.set(r.id,r);
+ Object.assign(cfg,await tx('kv','readonly',s=>s.get('cfg'))||{});$('#cs').checked=cfg.suggest;draw();
+ try{root=await tx('kv','readonly',s=>s.get('root'));
+  if(root){if(await root.queryPermission({mode:'readwrite'})==='granted'){const out=[];await walk(root,'',out);scan(out,true)}
+   else{$('#re').hidden=false;$('#re').innerHTML=`<button id="rb" class="on">Połącz z folderem „${esc(root.name)}”</button>`;
+    $('#rb').onclick=async()=>{if(await root.requestPermission({mode:'readwrite'})==='granted'){$('#re').hidden=true;const out=[];await walk(root,'',out);scan(out,true)}}}}}catch(e){root=null}
+ info(M.size?`Sampli: ${M.size}.`:'')})();
+</script>
+</body>
+</html>
